@@ -446,7 +446,7 @@ contract FHEArbitrageProtectionHook is BaseHook, IArbitrageProtection {
     }
 
     function emergencyUpdateThreshold(PoolId poolId, inEuint128 calldata newThreshold) external {
-        require(permissions.hasAccess(msg.sender, "admin"), "Not authorized");
+        require(permissions.hasAccess(msg.sender, keccak256("admin")), "Not authorized");
         euint128 threshold = FHE.asEuint128(newThreshold);
         encryptedThresholds[poolId] = threshold;
     }
