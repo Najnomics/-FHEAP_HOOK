@@ -109,12 +109,12 @@ contract FHEArbitrageProtectionHook is BaseHook, IArbitrageProtection {
      * @dev Initialize protection for a new pool with encrypted parameters
      * Following CoFHE initialization patterns
      */
-    function afterInitialize(
+    function _afterInitialize(
         address,
         PoolKey calldata key,
         uint160,
         int24
-    ) external override onlyPoolManager returns (bytes4) {
+    ) internal override returns (bytes4) {
         PoolId poolId = key.toId();
         
         // Initialize encrypted state following FHE best practices
