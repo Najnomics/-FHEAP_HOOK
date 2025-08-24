@@ -243,7 +243,7 @@ contract FHEArbitrageProtectionHook is BaseHook, IArbitrageProtection {
         euint128 encryptedProtectionFee = ArbitrageCalculations.calculateProtectionFee(
             encryptedSpread,
             swapAmount,
-            MAXIMUM_PROTECTION_FEE
+            FHE.asEuint128(MAXIMUM_PROTECTION_FEE)
         );
         
         // Estimate MEV value using encrypted calculations
