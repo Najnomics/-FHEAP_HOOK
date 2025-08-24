@@ -140,13 +140,13 @@ contract FHEArbitrageProtectionHook is BaseHook, IArbitrageProtection {
         
         // Check protection cooldown
         if (block.number - lastProtectionBlock[poolId] < PROTECTION_COOLDOWN) {
-            return (FHEArbitrageProtectionHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
+            return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
         }
         
         // Analyze encrypted arbitrage risk using FHE operations
         _analyzeArbitrageRisk(key, params);
         
-        return (FHEArbitrageProtectionHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
+        return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
 
     /**
