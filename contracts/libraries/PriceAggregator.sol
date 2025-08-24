@@ -168,7 +168,7 @@ contract PriceAggregator {
         
         // Validate price using FHE operations
         FHE.req(FHE.gt(price, FHE.asEuint128(ZERO_VALUE)));
-        FHE.req(FHE.lt(price, MAX_PRICE_ENCRYPTED));
+        FHE.req(FHE.lt(price, FHE.asEuint128(MAX_PRICE_VALUE)));
         
         // Create price hash for integrity
         bytes32 priceHash = keccak256(abi.encodePacked(
