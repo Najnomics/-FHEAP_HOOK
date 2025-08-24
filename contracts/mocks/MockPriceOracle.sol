@@ -434,7 +434,7 @@ contract MockPriceOracle {
         require(dexs.length == prices.length, "Array length mismatch");
         
         for (uint256 i = 0; i < dexs.length; i++) {
-            setMockPrice(dexs[i], token0, token1, prices[i]);
+            this.setMockPrice(dexs[i], token0, token1, prices[i]);
         }
     }
 }
