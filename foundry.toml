@@ -7,14 +7,14 @@ optimizer = true
 optimizer_runs = 200
 solc_version = "0.8.24"
 
-[dependencies]
-forge-std = "^1.7.0"
-openzeppelin-contracts = "^5.0.0"
-v4-core = { git = "https://github.com/Uniswap/v4-core", rev = "main" }
-v4-periphery = { git = "https://github.com/Uniswap/v4-periphery", rev = "main" }
-fhenix-contracts = { git = "https://github.com/FhenixProtocol/fhenix-contracts", rev = "main" }
-cofhe-contracts = { git = "https://github.com/FhenixProtocol/cofhe-contracts", rev = "main" }
-cofhe-mock-contracts = { git = "https://github.com/FhenixProtocol/cofhe-mock-contracts", rev = "main" }
+[rpc_endpoints]
+local = "http://localhost:8545"
+helium = "https://api.helium.fhenix.zone"
+fhenix = "https://api.fhenix.zone"
+
+[etherscan]
+helium = { key = "${HELIUM_ETHERSCAN_API_KEY}" }
+fhenix = { key = "${FHENIX_ETHERSCAN_API_KEY}" }
 
 [profile.ci]
 fuzz = { runs = 10_000 }
