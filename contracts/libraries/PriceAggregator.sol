@@ -369,15 +369,29 @@ contract PriceAggregator {
     }
 
     /**
-     * @dev Calculate inverse price using FHE operations
-     * @param price Original encrypted price
-     * @return Inverted encrypted price
+     * @dev Calculate inverse price for cross-pair calculations
+     * Following CoFHE calculation patterns
+     * Note: Simplified due to FHE division limitations
+     * @param price Encrypted input price
+     * @return Encrypted approximated inverse price
      */
     function _calculateInversePrice(euint128 price) internal pure returns (euint128) {
-        // For FHE operations, we approximate inverse as (1e36 / price)
-        // This is a simplified approach - production would need more sophisticated math
-        euint128 oneEth36 = FHE.asEuint128(1e36);
-        return FHE.div(oneEth36, price);
+        // Since FHE.div is not supported for euint128, we'll use a simplified approximation
+        // This is a placeholder implementation - production would need alternative approach
+        
+        // For now, return a fixed inverse approximation based on magnitude
+        euint128 zero = FHE.asEuint128(0);
+        FHE.req(FHE.gt(price, zero));
+        
+        // Simple approximation: if price is high, inverse is low
+        euint128 threshold = FHE.asEuint128(1e18);
+        ebool isHighPrice = FHE.gt(price, threshold);
+        
+        // Return approximate inverse values
+        euint128 lowInverse = FHE.asEuint128(1e15);  // For high prices
+        euint128 highInverse = FHE.asEuint128(1e21); // For low prices
+        
+        return FHE.select(isHighPrice, lowInverse, highInverse);
     }
 
     /**
