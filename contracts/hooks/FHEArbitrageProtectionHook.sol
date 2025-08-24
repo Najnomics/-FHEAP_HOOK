@@ -381,7 +381,7 @@ contract FHEArbitrageProtectionHook is BaseHook, IArbitrageProtection {
         PoolId poolId,
         euint128 newThreshold
     ) external override {
-        require(permissions.hasAccess(msg.sender, "admin"), "Not authorized");
+        require(permissions.hasAccess(msg.sender, keccak256("admin")), "Not authorized");
         
         // Validate threshold using FHE operations
         FHE.req(FHE.gt(newThreshold, FHE.asEuint128(0)));
