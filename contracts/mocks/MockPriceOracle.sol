@@ -419,6 +419,28 @@ contract MockPriceOracle {
     }
 
     /**
+     * @dev Calculate approximate inverse for encrypted values
+     * Note: Simplified due to FHE division limitations
+     * @param encryptedPrice Input encrypted price
+     * @return Approximate encrypted inverse
+     */
+    function _calculateApproximateInverse(euint128 encryptedPrice) internal pure returns (euint128) {
+        // Simplified approximation since FHE.div is not supported for euint128
+        euint128 zero = FHE.asEuint128(0);
+        FHE.req(FHE.gt(encryptedPrice, zero));
+        
+        // Simple threshold-based inverse approximation
+        euint128 threshold = FHE.asEuint128(1e18);
+        ebool isHighPrice = FHE.gt(encryptedPrice, threshold);
+        
+        // Return approximate inverse values
+        euint128 lowInverse = FHE.asEuint128(1e15);  // For high prices
+        euint128 highInverse = FHE.asEuint128(1e21); // For low prices
+        
+        return FHE.select(isHighPrice, lowInverse, highInverse);
+    }
+
+    /**
      * @dev Batch set prices for efficient testing
      * @param dexs Array of DEX addresses
      * @param token0 First token address
