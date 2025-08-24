@@ -37,7 +37,7 @@ import {IArbitrageProtection} from "./interfaces/IArbitrageProtection.sol";
  * 
  * Following CoFHE patterns from Fhenix documentation and cofhe-scaffold-eth template
  */
-contract FHEArbitrageProtectionHook is BaseHook, IArbitrageProtection, PermissionedV2 {
+contract FHEArbitrageProtectionHook is BaseHook, IArbitrageProtection {
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
     using StateLibrary for IPoolManager;
