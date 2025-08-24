@@ -173,7 +173,7 @@ contract FHEArbitrageProtectionHook is BaseHook, IArbitrageProtection {
             protectionActive[poolId] = FHE.asEbool(false);
         }
         
-        return (FHEArbitrageProtectionHook.afterSwap.selector, 0);
+        return (this.afterSwap.selector, 0);
     }
 
     /**
