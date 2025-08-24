@@ -402,7 +402,7 @@ contract FHEArbitrageProtectionHook is BaseHook, IArbitrageProtection {
      * Following CoFHE access control patterns
      */
     function grantAccess(address user, string calldata accessType) external override {
-        require(permissions.hasAccess(msg.sender, "admin"), "Not authorized");
+        require(permissions.hasAccess(msg.sender, keccak256("admin")), "Not authorized");
         permissions.grantAccess(user, accessType);
     }
 
