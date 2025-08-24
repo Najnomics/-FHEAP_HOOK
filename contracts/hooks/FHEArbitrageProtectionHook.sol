@@ -424,7 +424,7 @@ contract FHEArbitrageProtectionHook is BaseHook, IArbitrageProtection {
         bytes32 dataTypeHash = keccak256(bytes(dataType));
         
         if (dataTypeHash == keccak256("mev_captured")) {
-            require(permissions.hasAccess(msg.sender, "mev_data"), "Not authorized");
+            require(permissions.hasAccess(msg.sender, keccak256("mev_data")), "Not authorized");
             return abi.encode(encryptedTotalMEVCaptured[poolId]);
         } else if (dataTypeHash == keccak256("lp_rewards")) {
             require(permissions.hasAccess(msg.sender, "lp_rewards"), "Not authorized");
