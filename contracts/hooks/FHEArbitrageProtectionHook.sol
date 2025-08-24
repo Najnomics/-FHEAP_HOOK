@@ -185,7 +185,7 @@ contract FHEArbitrageProtectionHook is BaseHook, IArbitrageProtection, Permissio
     function afterSwap(
         address,
         PoolKey calldata key,
-        IPoolManager.SwapParams calldata,
+        SwapParams calldata,
         BalanceDelta,
         bytes calldata
     ) external override onlyPoolManager returns (bytes4, int128) {
