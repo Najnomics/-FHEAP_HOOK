@@ -8,7 +8,6 @@ import {
     inEuint64,
     euint64
 } from "@fhenixprotocol/contracts/FHE.sol";
-import {Permit} from "@fhenixprotocol/contracts/access/Permit.sol";
 
 /**
  * @title PriceAggregator  
@@ -208,7 +207,7 @@ contract PriceAggregator {
             dex,
             token0,
             token1,
-            price.seal(systemPublicKey),
+            abi.encode(price),
             block.timestamp
         );
     }
@@ -242,53 +241,6 @@ contract PriceAggregator {
         // Return absolute value using FHE select
         ebool aGreater = FHE.gt(priceA.price, priceB.price);
         return FHE.select(aGreater, diff1, diff2);
-    }
-
-    /**
-     * @dev Batch update multiple pool prices following CoFHE batch patterns
-     * @param dexs Array of DEX addresses
-     * @param token0s Array of first token addresses
-     * @param token1s Array of second token addresses
-     * @param encryptedPrices Array of encrypted prices
-     */
-    function batchUpdatePrices(
-        address[] calldata dexs,
-        address[] calldata token0s,
-        address[] calldata token1s,
-        inEuint128[] calldata encryptedPrices
-    ) external onlyAuthorized {
-        require(
-            dexs.length == token0s.length &&
-            token0s.length == token1s.length &&
-            token1s.length == encryptedPrices.length,
-            "Array length mismatch"
-        );
-        
-        require(dexs.length <= 50, "Batch too large"); // Prevent gas limit issues
-        
-        uint256 successCount = 0;
-        
-        for (uint256 i = 0; i < dexs.length; i++) {
-            try this.updateEncryptedPrice(
-                dexs[i], 
-                token0s[i], 
-                token1s[i], 
-                encryptedPrices[i]
-            ) {
-                successCount++;
-            } catch {
-                // Log validation failure but continue with batch
-                emit PriceValidationFailed(
-                    dexs[i],
-                    token0s[i],
-                    token1s[i],
-                    "Update failed in batch",
-                    block.timestamp
-                );
-            }
-        }
-        
-        emit BatchPriceUpdate(dexs, successCount, block.timestamp);
     }
 
     /**
@@ -357,26 +309,6 @@ contract PriceAggregator {
     }
 
     /**
-     * @dev Get sealed encrypted price following CoFHE sealing patterns
-     * @param dex DEX address
-     * @param token0 First token address
-     * @param token1 Second token address
-     * @param publicKey User's public key for sealing
-     * @return Sealed encrypted price data
-     */
-    function getSealedPrice(
-        address dex,
-        address token0,
-        address token1,
-        bytes32 publicKey
-    ) external view returns (bytes memory) {
-        require(publicKey != bytes32(0), "Invalid public key");
-        
-        euint128 price = this.getEncryptedPrice(dex, token0, token1);
-        return price.seal(publicKey);
-    }
-
-    /**
      * @dev Add new price oracle following CoFHE oracle management patterns
      * @param oracle Oracle address
      * @param name Oracle name
@@ -436,98 +368,6 @@ contract PriceAggregator {
     }
 
     /**
-     * @dev Check if price data is fresh following CoFHE validation patterns
-     * @param dex DEX address
-     * @param token0 First token address
-     * @param token1 Second token address
-     * @return True if price is fresh
-     */
-    function isPriceFresh(
-        address dex,
-        address token0,
-        address token1
-    ) external view returns (bool) {
-        EncryptedPriceData memory priceData = encryptedPrices[dex][token0][token1];
-        return priceData.isValid && _isPriceFresh(priceData.timestamp);
-    }
-
-    /**
-     * @dev Get price age in seconds
-     * @param dex DEX address
-     * @param token0 First token address
-     * @param token1 Second token address
-     * @return Age of price in seconds
-     */
-    function getPriceAge(
-        address dex,
-        address token0,
-        address token1
-    ) external view returns (uint256) {
-        EncryptedPriceData memory priceData = encryptedPrices[dex][token0][token1];
-        if (!priceData.isValid) return type(uint256).max;
-        
-        return block.timestamp - priceData.timestamp;
-    }
-
-    /**
-     * @dev Get all registered DEX addresses for a specific type
-     * @param dexType Type of DEX
-     * @return Array of DEX addresses
-     */
-    function getDEXsByType(DEXType dexType) external view returns (address[] memory) {
-        return dexOracles[dexType];
-    }
-
-    /**
-     * @dev Get oracle reputation score
-     * @param oracle Oracle address
-     * @return Reputation score
-     */
-    function getOracleReputation(address oracle) external view returns (uint256) {
-        return oracleReputationScores[oracle];
-    }
-
-    /**
-     * @dev Get total number of authorized updaters
-     * @return Number of authorized updaters
-     */
-    function getAuthorizedUpdaterCount() external view returns (uint256) {
-        return authorizedUpdaters.length;
-    }
-
-    /**
-     * @dev Get system public key for price sealing
-     * @return System public key
-     */
-    function getSystemPublicKey() external view returns (bytes32) {
-        return systemPublicKey;
-    }
-
-    /**
-     * @dev Emergency pause all price updates following CoFHE emergency patterns
-     */
-    function emergencyPause() external onlyAdmin {
-        emergencyPaused = true;
-        emit EmergencyPauseActivated(msg.sender, block.timestamp);
-    }
-
-    /**
-     * @dev Resume price updates after emergency
-     */
-    function emergencyResume() external onlyAdmin {
-        emergencyPaused = false;
-    }
-
-    /**
-     * @dev Update system public key (admin only)
-     * @param newPublicKey New system public key
-     */
-    function updateSystemPublicKey(bytes32 newPublicKey) external onlyAdmin {
-        require(newPublicKey != bytes32(0), "Invalid public key");
-        systemPublicKey = newPublicKey;
-    }
-
-    /**
      * @dev Calculate inverse price using FHE operations
      * @param price Original encrypted price
      * @return Inverted encrypted price
@@ -549,28 +389,25 @@ contract PriceAggregator {
     }
 
     /**
-     * @dev Get detailed oracle information
-     * @param oracle Oracle address
-     * @return Oracle details and statistics
+     * @dev Emergency pause all price updates following CoFHE emergency patterns
      */
-    function getOracleDetails(address oracle) external view returns (
-        string memory name,
-        DEXType dexType,
-        bool isActive,
-        uint256 addedTimestamp,
-        uint256 updateCount,
-        uint256 lastUpdateTimestamp,
-        uint256 reputationScore
-    ) {
-        PriceOracle memory oracleInfo = priceOracles[oracle];
-        return (
-            oracleInfo.name,
-            oracleInfo.dexType,
-            oracleInfo.isActive,
-            oracleInfo.addedTimestamp,
-            oracleInfo.updateCount,
-            oracleInfo.lastUpdateTimestamp,
-            oracleReputationScores[oracle]
-        );
+    function emergencyPause() external onlyAdmin {
+        emergencyPaused = true;
+        emit EmergencyPauseActivated(msg.sender, block.timestamp);
+    }
+
+    /**
+     * @dev Resume price updates after emergency
+     */
+    function emergencyResume() external onlyAdmin {
+        emergencyPaused = false;
+    }
+
+    /**
+     * @dev Get system public key for price sealing
+     * @return System public key
+     */
+    function getSystemPublicKey() external view returns (bytes32) {
+        return systemPublicKey;
     }
 }
