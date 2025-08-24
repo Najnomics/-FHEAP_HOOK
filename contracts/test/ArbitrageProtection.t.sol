@@ -617,4 +617,5 @@ contract ArbitrageProtectionTest is Test {
         priceAggregator.updateEncryptedPrice(UNISWAP_POOL, TOKEN0, TOKEN1, price1);
         priceAggregator.updateEncryptedPrice(SUSHISWAP_POOL, TOKEN0, TOKEN1, price2);
     }
+    */
 }
