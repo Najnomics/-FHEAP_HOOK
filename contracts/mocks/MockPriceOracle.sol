@@ -4,7 +4,8 @@ pragma solidity ^0.8.24;
 import {
     FHE,
     inEuint128,
-    euint128
+    euint128,
+    ebool
 } from "@fhenixprotocol/contracts/FHE.sol";
 
 /**
