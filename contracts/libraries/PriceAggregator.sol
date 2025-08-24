@@ -6,7 +6,8 @@ import {
     inEuint128,
     euint128,
     inEuint64,
-    euint64
+    euint64,
+    ebool
 } from "@fhenixprotocol/contracts/FHE.sol";
 
 /**
