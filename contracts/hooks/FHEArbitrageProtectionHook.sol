@@ -162,7 +162,7 @@ contract FHEArbitrageProtectionHook is BaseHook, IArbitrageProtection, Permissio
     function beforeSwap(
         address,
         PoolKey calldata key,
-        IPoolManager.SwapParams calldata params,
+        SwapParams calldata params,
         bytes calldata
     ) external override onlyPoolManager returns (bytes4, BeforeSwapDelta, uint24) {
         PoolId poolId = key.toId();
