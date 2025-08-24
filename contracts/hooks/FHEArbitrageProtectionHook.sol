@@ -259,7 +259,7 @@ contract FHEArbitrageProtectionHook is BaseHook, IArbitrageProtection, Permissio
      */
     function _triggerProtection(
         PoolKey calldata key,
-        IPoolManager.SwapParams calldata params,
+        SwapParams calldata params,
         euint128 encryptedSpread
     ) internal {
         PoolId poolId = key.toId();
