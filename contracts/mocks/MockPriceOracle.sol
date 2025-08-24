@@ -134,7 +134,7 @@ contract MockPriceOracle {
             token0, 
             token1, 
             price, 
-            encryptedPrice.seal(mockSystemPublicKey), 
+            abi.encode(encryptedPrice), // Simplified sealing for mock
             block.timestamp
         );
     }
