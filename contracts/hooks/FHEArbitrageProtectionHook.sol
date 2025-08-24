@@ -42,7 +42,6 @@ contract FHEArbitrageProtectionHook is BaseHook, IArbitrageProtection, Permissio
     using CurrencyLibrary for Currency;
     using StateLibrary for IPoolManager;
     using ArbitrageCalculations for *;
-    using FHEPermissions for *;
     using BeforeSwapDeltaLibrary for BeforeSwapDelta;
 
     // Custom errors following Fhenix patterns
