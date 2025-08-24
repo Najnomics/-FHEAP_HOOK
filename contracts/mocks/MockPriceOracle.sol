@@ -260,7 +260,7 @@ contract MockPriceOracle {
         smallSpread[1] = 2002 * 1e18; // Sushi: $2002 (0.1% spread)
         smallSpread[2] = 2001 * 1e18; // Curve: $2001
         smallSpread[3] = 2000 * 1e18; // Balancer: $2000
-        createArbitrageScenario("small_spread", token0, token1, smallSpread);
+        this.createArbitrageScenario("small_spread", token0, token1, smallSpread);
         
         // Scenario 2: Medium spread (1% - should trigger)
         uint256[] memory mediumSpread = new uint256[](4);
@@ -268,7 +268,7 @@ contract MockPriceOracle {
         mediumSpread[1] = 2020 * 1e18; // Sushi: $2020 (1% spread)
         mediumSpread[2] = 2010 * 1e18; // Curve: $2010
         mediumSpread[3] = 2005 * 1e18; // Balancer: $2005
-        createArbitrageScenario("medium_spread", token0, token1, mediumSpread);
+        this.createArbitrageScenario("medium_spread", token0, token1, mediumSpread);
         
         // Scenario 3: Large spread (5% - should definitely trigger)
         uint256[] memory largeSpread = new uint256[](4);
@@ -276,7 +276,7 @@ contract MockPriceOracle {
         largeSpread[1] = 2100 * 1e18; // Sushi: $2100 (5% spread)
         largeSpread[2] = 2050 * 1e18; // Curve: $2050
         largeSpread[3] = 2025 * 1e18; // Balancer: $2025
-        createArbitrageScenario("large_spread", token0, token1, largeSpread);
+        this.createArbitrageScenario("large_spread", token0, token1, largeSpread);
         
         // Scenario 4: Extreme spread (10% - maximum protection)
         uint256[] memory extremeSpread = new uint256[](4);
@@ -284,7 +284,7 @@ contract MockPriceOracle {
         extremeSpread[1] = 2200 * 1e18; // Sushi: $2200 (10% spread)
         extremeSpread[2] = 2100 * 1e18; // Curve: $2100
         extremeSpread[3] = 2150 * 1e18; // Balancer: $2150
-        createArbitrageScenario("extreme_spread", token0, token1, extremeSpread);
+        this.createArbitrageScenario("extreme_spread", token0, token1, extremeSpread);
     }
 
     /**
