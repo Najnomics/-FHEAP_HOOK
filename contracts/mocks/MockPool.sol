@@ -260,8 +260,8 @@ contract MockPool {
     ) external {
         require(poolExists[poolId1] && poolExists[poolId2], "Pools must exist");
         
-        setMockPrice(poolId1, price1);
-        setMockPrice(poolId2, price2);
+        this.setMockPrice(poolId1, price1);
+        this.setMockPrice(poolId2, price2);
     }
 
     /**
