@@ -491,7 +491,7 @@ contract ArbitrageProtectionTest is Test {
         priceAggregator.updateEncryptedPrice(UNISWAP_POOL, TOKEN0, TOKEN1, encUniPrice);
         priceAggregator.updateEncryptedPrice(SUSHISWAP_POOL, TOKEN0, TOKEN1, encSushiPrice);
         
-        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+        SwapParams memory params = SwapParams({
             zeroForOne: true,
             amountSpecified: -100000 * 1e18,
             sqrtPriceLimitX96: 0
