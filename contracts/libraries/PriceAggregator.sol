@@ -110,9 +110,9 @@ contract PriceAggregator {
     uint256 public constant MIN_REPUTATION_SCORE = 100;
     uint256 public constant MAX_ORACLES_PER_TYPE = 10;
     
-    // FHE constants
-    euint128 private constant ZERO_ENCRYPTED = FHE.asEuint128(0);
-    euint128 private constant MAX_PRICE_ENCRYPTED = FHE.asEuint128(type(uint128).max);
+    // Regular constants - FHE values created as needed in functions
+    uint128 private constant ZERO_VALUE = 0;
+    uint128 private constant MAX_PRICE_VALUE = type(uint128).max;
 
     modifier onlyAuthorized() {
         require(
