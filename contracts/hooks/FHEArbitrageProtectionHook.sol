@@ -384,7 +384,7 @@ contract FHEArbitrageProtectionHook is BaseHook, IArbitrageProtection {
         require(permissions.hasAccess(msg.sender, "admin"), "Not authorized");
         
         // Validate threshold using FHE operations
-        FHE.req(FHE.gt(newThreshold, ZERO_ENCRYPTED));
+        FHE.req(FHE.gt(newThreshold, FHE.asEuint128(0)));
         FHE.req(FHE.lt(newThreshold, FHE.asEuint128(100000))); // Max 10%
         
         encryptedThresholds[poolId] = newThreshold;
