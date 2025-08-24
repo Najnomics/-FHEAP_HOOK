@@ -440,7 +440,7 @@ contract FHEArbitrageProtectionHook is BaseHook, IArbitrageProtection {
      * @dev Emergency functions for admin following CoFHE emergency patterns
      */
     function emergencyPause(PoolId poolId) external {
-        require(permissions.hasAccess(msg.sender, "admin"), "Not authorized");
+        require(permissions.hasAccess(msg.sender, keccak256("admin")), "Not authorized");
         protectionActive[poolId] = FHE.asEbool(false);
         lastProtectionBlock[poolId] = block.number + PROTECTION_COOLDOWN;
     }
