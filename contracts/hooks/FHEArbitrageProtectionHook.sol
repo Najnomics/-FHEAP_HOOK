@@ -118,12 +118,12 @@ contract FHEArbitrageProtectionHook is BaseHook, IArbitrageProtection {
         PoolId poolId = key.toId();
         
         // Initialize encrypted state following FHE best practices
-        encryptedThresholds[poolId] = MINIMUM_ARBITRAGE_THRESHOLD;
+        encryptedThresholds[poolId] = FHE.asEuint128(MINIMUM_ARBITRAGE_THRESHOLD);
         protectionActive[poolId] = FHE.asEbool(false);
-        encryptedTotalMEVCaptured[poolId] = ZERO_ENCRYPTED;
-        encryptedTotalLPRewards[poolId] = ZERO_ENCRYPTED;
+        encryptedTotalMEVCaptured[poolId] = FHE.asEuint128(0);
+        encryptedTotalLPRewards[poolId] = FHE.asEuint128(0);
         
-        return FHEArbitrageProtectionHook.afterInitialize.selector;
+        return this.afterInitialize.selector;
     }
 
     /**
