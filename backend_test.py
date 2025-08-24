@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Dict, Any
 
 class FHEAPBackendTester:
-    def __init__(self, base_url="https://study-links.preview.emergentagent.com"):
+    def __init__(self, base_url="https://fhe-arb-hook.preview.emergentagent.com"):
         self.base_url = base_url
         self.api_base = f"{base_url}/api"
         self.tests_run = 0
