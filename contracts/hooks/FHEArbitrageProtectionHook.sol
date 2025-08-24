@@ -153,13 +153,13 @@ contract FHEArbitrageProtectionHook is BaseHook, IArbitrageProtection {
      * @dev Distribute captured MEV to LPs after swap using encrypted calculations
      * Following CoFHE reward distribution patterns
      */
-    function afterSwap(
+    function _afterSwap(
         address,
         PoolKey calldata key,
         SwapParams calldata,
         BalanceDelta,
         bytes calldata
-    ) external override onlyPoolManager returns (bytes4, int128) {
+    ) internal override returns (bytes4, int128) {
         PoolId poolId = key.toId();
         
         // Check if protection was triggered (encrypted boolean check)
