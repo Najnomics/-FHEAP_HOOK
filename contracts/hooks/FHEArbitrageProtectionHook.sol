@@ -342,7 +342,7 @@ contract FHEArbitrageProtectionHook is BaseHook, IArbitrageProtection {
         PoolId poolId,
         bytes32 publicKey
     ) external view override returns (bytes memory) {
-        require(permissions.hasAccess(msg.sender, "mev_data"), "Not authorized");
+        require(permissions.hasAccess(msg.sender, keccak256("mev_data")), "Not authorized");
         return abi.encode(encryptedTotalMEVCaptured[poolId]);
     }
 
