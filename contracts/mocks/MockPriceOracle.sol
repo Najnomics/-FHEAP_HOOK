@@ -122,7 +122,7 @@ contract MockPriceOracle {
         // Also store reverse pair
         mockPrices[dex][token1][token0] = MockPriceData({
             price: 1e36 / price, // Inverse price
-            encryptedPrice: FHE.div(FHE.asEuint128(1e36), encryptedPrice),
+            encryptedPrice: _calculateApproximateInverse(encryptedPrice),
             timestamp: block.timestamp,
             blockNumber: block.number,
             isValid: true,
