@@ -52,33 +52,6 @@ contract FHEArbitrageProtectionHook is BaseHook, IArbitrageProtection, Permissio
     error StalePrice();
     error InvalidFHEData();
 
-    // Events with encrypted data (following CoFHE event patterns)
-    event ArbitrageDetected(
-        PoolId indexed poolId,
-        bytes encryptedSpread,
-        uint256 timestamp
-    );
-    
-    event ProtectionTriggered(
-        PoolId indexed poolId,
-        bytes encryptedFee,
-        bytes encryptedMEVCaptured,
-        uint256 timestamp
-    );
-    
-    event LPRewardsDistributed(
-        PoolId indexed poolId,
-        bytes encryptedTotalRewards,
-        uint256 recipientCount,
-        uint256 timestamp
-    );
-
-    event ThresholdUpdated(
-        PoolId indexed poolId,
-        bytes encryptedNewThreshold,
-        uint256 timestamp
-    );
-
     // FHE Constants following CoFHE best practices
     euint128 private constant MINIMUM_ARBITRAGE_THRESHOLD = FHE.asEuint128(1000); // 0.1% in basis points
     euint128 private constant MAXIMUM_PROTECTION_FEE = FHE.asEuint128(30000); // 3% in basis points
