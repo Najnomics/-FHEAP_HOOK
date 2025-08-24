@@ -52,11 +52,10 @@ contract FHEArbitrageProtectionHook is BaseHook, IArbitrageProtection {
     error StalePrice();
     error InvalidFHEData();
 
-    // FHE Constants following CoFHE best practices
-    euint128 private constant MINIMUM_ARBITRAGE_THRESHOLD = FHE.asEuint128(1000); // 0.1% in basis points
-    euint128 private constant MAXIMUM_PROTECTION_FEE = FHE.asEuint128(30000); // 3% in basis points
-    euint64 private constant LP_SHARE_PERCENTAGE = FHE.asEuint64(8000); // 80% to LPs
-    euint128 private constant ZERO_ENCRYPTED = FHE.asEuint128(0);
+    // Regular constants - FHE values will be created in functions as needed
+    uint128 private constant MINIMUM_ARBITRAGE_THRESHOLD = 1000; // 0.1% in basis points
+    uint128 private constant MAXIMUM_PROTECTION_FEE = 30000; // 3% in basis points
+    uint64 private constant LP_SHARE_PERCENTAGE = 8000; // 80% to LPs
 
     // State variables with FHE encryption
     mapping(PoolId => euint128) private encryptedThresholds;
