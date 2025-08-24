@@ -178,7 +178,7 @@ contract ArbitrageProtectionTest is Test {
             int24(0)
         );
         
-        assertEq(result, FHEArbitrageProtectionHook.afterInitialize.selector);
+        assertEq(result, fheapHook.afterInitialize.selector);
         assertFalse(fheapHook.isProtectionActive(testPoolId));
     }
 
