@@ -1,0 +1,76 @@
+{
+  "name": "fheap-fhe-arbitrage-protection",
+  "version": "1.0.0",
+  "description": "FHE Arbitrage Protection Hook for Uniswap v4 using Fhenix",
+  "main": "index.js",
+  "scripts": {
+    "install:all": "npm install && cd frontend && yarn install && cd ..",
+    
+    "fhenix:start": "docker run -d --name localfhenix -p 8545:8545 fhenixprotocol/localfhenix:latest",
+    "fhenix:stop": "docker stop localfhenix && docker rm localfhenix",
+    "fhenix:logs": "docker logs -f localfhenix",
+    
+    "compile": "forge build",
+    "test": "forge test -vvv",
+    "test:gas": "forge test --gas-report",
+    "test:coverage": "forge coverage",
+    "test:integration": "cd test && npm run integration",
+    "test:all": "npm run test && npm run test:integration",
+    
+    "deploy:local": "forge script scripts/deploy-local.ts --rpc-url $LOCALFHENIX_RPC_URL --broadcast",
+    "deploy:helium": "forge script scripts/deploy-testnet.ts --rpc-url $HELIUM_RPC_URL --broadcast --verify",
+    "deploy:mainnet": "forge script scripts/deploy-mainnet.ts --rpc-url $FHENIX_RPC_URL --broadcast --verify",
+    
+    "dev:frontend": "cd frontend && yarn start",
+    "build:frontend": "cd frontend && yarn build",
+    "start:frontend": "cd frontend && yarn start",
+    
+    "lint": "solhint 'contracts/**/*.sol' && cd frontend && yarn lint",
+    "format": "prettier --write 'contracts/**/*.sol' && cd frontend && yarn format",
+    
+    "monitor:arbitrage": "ts-node scripts/monitor-arbitrage.ts",
+    "setup:permissions": "ts-node scripts/setup-permissions.ts",
+    "verify:contracts": "ts-node scripts/verify-contracts.ts"
+  },
+  "dependencies": {
+    "@fhenixprotocol/contracts": "^0.2.0",
+    "@fhenixprotocol/cofhejs": "^0.1.5",
+    "@fhenixprotocol/cofhe-hardhat-plugin": "^0.1.0",
+    "@fhenixprotocol/cofhe-mock-contracts": "^0.1.0",
+    "@uniswap/v4-core": "^0.0.2",
+    "@uniswap/v4-periphery": "^0.0.1",
+    "@openzeppelin/contracts": "^5.0.0",
+    "ethers": "^6.7.1",
+    "hardhat": "^2.19.0",
+    "forge-std": "^1.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "typescript": "^5.0.0",
+    "prettier": "^3.0.0",
+    "solhint": "^4.0.0",
+    "ts-node": "^10.9.0"
+  },
+  "keywords": [
+    "fhenix", 
+    "fhe", 
+    "fully-homomorphic-encryption",
+    "uniswap-v4", 
+    "hooks", 
+    "arbitrage", 
+    "mev-protection",
+    "defi",
+    "ethereum"
+  ],
+  "author": "FHEAP Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-repo/fheap-hook"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
