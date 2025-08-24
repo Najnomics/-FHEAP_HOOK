@@ -130,12 +130,12 @@ contract FHEArbitrageProtectionHook is BaseHook, IArbitrageProtection {
      * @dev Analyze arbitrage risk before swap execution using FHE operations
      * Core FHE arbitrage detection following CoFHE patterns
      */
-    function beforeSwap(
+    function _beforeSwap(
         address,
         PoolKey calldata key,
         SwapParams calldata params,
         bytes calldata
-    ) external override onlyPoolManager returns (bytes4, BeforeSwapDelta, uint24) {
+    ) internal override returns (bytes4, BeforeSwapDelta, uint24) {
         PoolId poolId = key.toId();
         
         // Check protection cooldown
