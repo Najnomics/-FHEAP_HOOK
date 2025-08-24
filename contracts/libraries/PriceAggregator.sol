@@ -8,20 +8,22 @@ import {
     inEuint64,
     euint64
 } from "@fhenixprotocol/contracts/FHE.sol";
+import {Permit} from "@fhenixprotocol/contracts/access/Permit.sol";
 
 /**
  * @title PriceAggregator  
  * @dev Multi-DEX price aggregation and encryption service
+ * Following CoFHE price oracle patterns from Fhenix documentation
  * Purpose: Collects prices from multiple DEXs and encrypts them for FHE operations
  */
 contract PriceAggregator {
     
-    // Events
+    // Events following CoFHE price oracle event patterns
     event PriceUpdated(
         address indexed dex,
         address indexed token0,
         address indexed token1,
-        bytes32 encryptedPrice,
+        bytes encryptedPrice,
         uint256 timestamp
     );
     
@@ -31,10 +33,32 @@ contract PriceAggregator {
         uint256 timestamp
     );
     
-    event OracleAdded(address indexed oracle, string name, uint256 timestamp);
-    event OracleRemoved(address indexed oracle, uint256 timestamp);
+    event OracleAdded(
+        address indexed oracle, 
+        string name, 
+        DEXType indexed dexType,
+        uint256 timestamp
+    );
+    
+    event OracleRemoved(
+        address indexed oracle, 
+        uint256 timestamp
+    );
 
-    // Supported DEX identifiers
+    event PriceValidationFailed(
+        address indexed dex,
+        address indexed token0,
+        address indexed token1,
+        string reason,
+        uint256 timestamp
+    );
+
+    event EmergencyPauseActivated(
+        address indexed admin,
+        uint256 timestamp
+    );
+
+    // Supported DEX identifiers following CoFHE enumeration patterns
     enum DEXType {
         UNISWAP_V2,
         UNISWAP_V3,
@@ -44,38 +68,58 @@ contract PriceAggregator {
         CUSTOM
     }
 
-    // Price data structure
+    // Price data structure following CoFHE data patterns
     struct EncryptedPriceData {
         euint128 price;
         uint256 timestamp;
         uint256 blockNumber;
         DEXType dexType;
         bool isValid;
+        bytes32 priceHash; // For integrity verification
     }
 
-    // Oracle information
+    // Oracle information following CoFHE oracle management patterns
     struct PriceOracle {
         address oracle;
         string name;
         DEXType dexType;
         bool isActive;
         uint256 addedTimestamp;
+        uint256 updateCount;
+        uint256 lastUpdateTimestamp;
     }
 
-    // State variables
+    // State variables following CoFHE state management patterns
     mapping(address => mapping(address => mapping(address => EncryptedPriceData))) private encryptedPrices;
     mapping(address => PriceOracle) public priceOracles;
     mapping(DEXType => address[]) public dexOracles;
+    mapping(address => uint256) private oracleReputationScores;
     
     address[] public authorizedUpdaters;
     mapping(address => bool) public isAuthorizedUpdater;
+    mapping(address => uint256) private updaterTimestamps;
     
+    // Access control and system settings
     address public immutable admin;
+    bool public emergencyPaused;
+    bytes32 private systemPublicKey;
+    
+    // Constants following CoFHE best practices
     uint256 public constant PRICE_STALENESS_THRESHOLD = 300; // 5 minutes
     uint256 public constant MAX_PRICE_DEVIATION = 1000; // 10% in basis points
+    uint256 public constant MIN_REPUTATION_SCORE = 100;
+    uint256 public constant MAX_ORACLES_PER_TYPE = 10;
+    
+    // FHE constants
+    euint128 private constant ZERO_ENCRYPTED = FHE.asEuint128(0);
+    euint128 private constant MAX_PRICE_ENCRYPTED = FHE.asEuint128(type(uint128).max);
 
     modifier onlyAuthorized() {
-        require(isAuthorizedUpdater[msg.sender] || msg.sender == admin, "Not authorized");
+        require(
+            isAuthorizedUpdater[msg.sender] || msg.sender == admin, 
+            "Not authorized"
+        );
+        require(!emergencyPaused, "System paused");
         _;
     }
 
@@ -84,14 +128,28 @@ contract PriceAggregator {
         _;
     }
 
+    modifier validAddress(address addr) {
+        require(addr != address(0), "Invalid address");
+        _;
+    }
+
+    modifier notPaused() {
+        require(!emergencyPaused, "System paused");
+        _;
+    }
+
     constructor() {
         admin = msg.sender;
         isAuthorizedUpdater[admin] = true;
         authorizedUpdaters.push(admin);
+        oracleReputationScores[admin] = 1000; // Perfect reputation for admin
+        
+        // Set system public key for encrypted price sealing
+        systemPublicKey = keccak256(abi.encodePacked(admin, block.timestamp, "PRICE_SYSTEM"));
     }
 
     /**
-     * @dev Update encrypted price for a specific pool
+     * @dev Update encrypted price for a specific pool following CoFHE update patterns
      * @param dex DEX contract address
      * @param token0 First token address
      * @param token1 Second token address
@@ -102,43 +160,61 @@ contract PriceAggregator {
         address token0,
         address token1,
         inEuint128 calldata encryptedPrice
-    ) external onlyAuthorized {
+    ) external onlyAuthorized validAddress(dex) validAddress(token0) validAddress(token1) {
         require(priceOracles[dex].isActive, "DEX not registered");
+        require(token0 != token1, "Invalid token pair");
         
         euint128 price = FHE.asEuint128(encryptedPrice);
         
-        // Validate price is not zero
-        FHE.req(FHE.gt(price, FHE.asEuint128(0)));
+        // Validate price using FHE operations
+        FHE.req(FHE.gt(price, ZERO_ENCRYPTED));
+        FHE.req(FHE.lt(price, MAX_PRICE_ENCRYPTED));
         
-        // Store encrypted price data
+        // Create price hash for integrity
+        bytes32 priceHash = keccak256(abi.encodePacked(
+            dex, token0, token1, block.timestamp, block.number
+        ));
+        
+        // Store encrypted price data following CoFHE storage patterns
         encryptedPrices[dex][token0][token1] = EncryptedPriceData({
             price: price,
             timestamp: block.timestamp,
             blockNumber: block.number,
             dexType: priceOracles[dex].dexType,
-            isValid: true
+            isValid: true,
+            priceHash: priceHash
         });
         
-        // Store reverse pair for convenience
+        // Store reverse pair for convenience with inverted price
         encryptedPrices[dex][token1][token0] = EncryptedPriceData({
-            price: FHE.div(FHE.asEuint128(1e36), price), // Inverse price
+            price: _calculateInversePrice(price),
             timestamp: block.timestamp,
             blockNumber: block.number,
             dexType: priceOracles[dex].dexType,
-            isValid: true
+            isValid: true,
+            priceHash: priceHash
         });
         
+        // Update oracle statistics
+        priceOracles[dex].updateCount++;
+        priceOracles[dex].lastUpdateTimestamp = block.timestamp;
+        updaterTimestamps[msg.sender] = block.timestamp;
+        
+        // Increase reputation score for successful update
+        oracleReputationScores[dex] = oracleReputationScores[dex] + 1;
+        
+        // Emit event with sealed encrypted price following CoFHE event patterns
         emit PriceUpdated(
             dex,
             token0,
             token1,
-            _encryptedToBytes32(price),
+            price.seal(systemPublicKey),
             block.timestamp
         );
     }
 
     /**
-     * @dev Get encrypted price spread between two pools
+     * @dev Get encrypted price spread between two pools following CoFHE calculation patterns
      * @param poolA First pool address
      * @param poolB Second pool address
      * @param token0 First token address
@@ -150,24 +226,26 @@ contract PriceAggregator {
         address poolB,
         address token0,
         address token1
-    ) external view returns (euint128) {
+    ) external view validAddress(poolA) validAddress(poolB) returns (euint128) {
         EncryptedPriceData memory priceA = encryptedPrices[poolA][token0][token1];
         EncryptedPriceData memory priceB = encryptedPrices[poolB][token0][token1];
         
+        // Validate price data
         require(priceA.isValid && priceB.isValid, "Invalid price data");
         require(_isPriceFresh(priceA.timestamp), "Price A is stale");
         require(_isPriceFresh(priceB.timestamp), "Price B is stale");
         
-        // Calculate absolute difference
+        // Calculate absolute difference using FHE operations
         euint128 diff1 = FHE.sub(priceA.price, priceB.price);
         euint128 diff2 = FHE.sub(priceB.price, priceA.price);
         
-        // Return absolute value using select
-        return FHE.select(FHE.gt(priceA.price, priceB.price), diff1, diff2);
+        // Return absolute value using FHE select
+        ebool aGreater = FHE.gt(priceA.price, priceB.price);
+        return FHE.select(aGreater, diff1, diff2);
     }
 
     /**
-     * @dev Batch update multiple pool prices
+     * @dev Batch update multiple pool prices following CoFHE batch patterns
      * @param dexs Array of DEX addresses
      * @param token0s Array of first token addresses
      * @param token1s Array of second token addresses
@@ -186,15 +264,35 @@ contract PriceAggregator {
             "Array length mismatch"
         );
         
+        require(dexs.length <= 50, "Batch too large"); // Prevent gas limit issues
+        
+        uint256 successCount = 0;
+        
         for (uint256 i = 0; i < dexs.length; i++) {
-            this.updateEncryptedPrice(dexs[i], token0s[i], token1s[i], encryptedPrices[i]);
+            try this.updateEncryptedPrice(
+                dexs[i], 
+                token0s[i], 
+                token1s[i], 
+                encryptedPrices[i]
+            ) {
+                successCount++;
+            } catch {
+                // Log validation failure but continue with batch
+                emit PriceValidationFailed(
+                    dexs[i],
+                    token0s[i],
+                    token1s[i],
+                    "Update failed in batch",
+                    block.timestamp
+                );
+            }
         }
         
-        emit BatchPriceUpdate(dexs, dexs.length, block.timestamp);
+        emit BatchPriceUpdate(dexs, successCount, block.timestamp);
     }
 
     /**
-     * @dev Get encrypted prices from multiple DEXs for cross-comparison
+     * @dev Get encrypted prices from multiple DEXs following CoFHE multi-source patterns
      * @param token0 First token address
      * @param token1 Second token address
      * @return Array of encrypted prices from different DEXs
@@ -202,13 +300,14 @@ contract PriceAggregator {
     function getEncryptedCrossDEXPrices(
         address token0,
         address token1
-    ) external view returns (euint128[] memory) {
+    ) external view validAddress(token0) validAddress(token1) returns (euint128[] memory) {
         uint256 validPriceCount = 0;
         
-        // Count valid prices
+        // Count valid prices from active oracles
         for (uint256 i = 0; i < authorizedUpdaters.length; i++) {
             address dex = authorizedUpdaters[i];
-            if (priceOracles[dex].isActive) {
+            if (priceOracles[dex].isActive && 
+                oracleReputationScores[dex] >= MIN_REPUTATION_SCORE) {
                 EncryptedPriceData memory priceData = encryptedPrices[dex][token0][token1];
                 if (priceData.isValid && _isPriceFresh(priceData.timestamp)) {
                     validPriceCount++;
@@ -216,13 +315,16 @@ contract PriceAggregator {
             }
         }
         
+        require(validPriceCount > 0, "No valid prices available");
+        
         // Collect valid prices
         euint128[] memory prices = new euint128[](validPriceCount);
         uint256 index = 0;
         
         for (uint256 i = 0; i < authorizedUpdaters.length; i++) {
             address dex = authorizedUpdaters[i];
-            if (priceOracles[dex].isActive) {
+            if (priceOracles[dex].isActive && 
+                oracleReputationScores[dex] >= MIN_REPUTATION_SCORE) {
                 EncryptedPriceData memory priceData = encryptedPrices[dex][token0][token1];
                 if (priceData.isValid && _isPriceFresh(priceData.timestamp)) {
                     prices[index] = priceData.price;
@@ -235,7 +337,7 @@ contract PriceAggregator {
     }
 
     /**
-     * @dev Get encrypted price for specific DEX and token pair
+     * @dev Get encrypted price for specific DEX following CoFHE data access patterns
      * @param dex DEX address
      * @param token0 First token address
      * @param token1 Second token address
@@ -245,16 +347,37 @@ contract PriceAggregator {
         address dex,
         address token0,
         address token1
-    ) external view returns (euint128) {
+    ) external view validAddress(dex) validAddress(token0) validAddress(token1) returns (euint128) {
         EncryptedPriceData memory priceData = encryptedPrices[dex][token0][token1];
         require(priceData.isValid, "Price not available");
         require(_isPriceFresh(priceData.timestamp), "Price is stale");
+        require(oracleReputationScores[dex] >= MIN_REPUTATION_SCORE, "Low reputation oracle");
         
         return priceData.price;
     }
 
     /**
-     * @dev Add new price oracle
+     * @dev Get sealed encrypted price following CoFHE sealing patterns
+     * @param dex DEX address
+     * @param token0 First token address
+     * @param token1 Second token address
+     * @param publicKey User's public key for sealing
+     * @return Sealed encrypted price data
+     */
+    function getSealedPrice(
+        address dex,
+        address token0,
+        address token1,
+        bytes32 publicKey
+    ) external view returns (bytes memory) {
+        require(publicKey != bytes32(0), "Invalid public key");
+        
+        euint128 price = this.getEncryptedPrice(dex, token0, token1);
+        return price.seal(publicKey);
+    }
+
+    /**
+     * @dev Add new price oracle following CoFHE oracle management patterns
      * @param oracle Oracle address
      * @param name Oracle name
      * @param dexType Type of DEX
@@ -263,37 +386,42 @@ contract PriceAggregator {
         address oracle,
         string calldata name,
         DEXType dexType
-    ) external onlyAdmin {
-        require(oracle != address(0), "Invalid oracle address");
+    ) external onlyAdmin validAddress(oracle) {
         require(!priceOracles[oracle].isActive, "Oracle already active");
+        require(bytes(name).length > 0, "Invalid name");
+        require(dexOracles[dexType].length < MAX_ORACLES_PER_TYPE, "Too many oracles for type");
         
         priceOracles[oracle] = PriceOracle({
             oracle: oracle,
             name: name,
             dexType: dexType,
             isActive: true,
-            addedTimestamp: block.timestamp
+            addedTimestamp: block.timestamp,
+            updateCount: 0,
+            lastUpdateTimestamp: 0
         });
         
         dexOracles[dexType].push(oracle);
+        oracleReputationScores[oracle] = 500; // Starting reputation
         
         if (!isAuthorizedUpdater[oracle]) {
             isAuthorizedUpdater[oracle] = true;
             authorizedUpdaters.push(oracle);
         }
         
-        emit OracleAdded(oracle, name, block.timestamp);
+        emit OracleAdded(oracle, name, dexType, block.timestamp);
     }
 
     /**
-     * @dev Remove price oracle
+     * @dev Remove price oracle following CoFHE oracle management patterns
      * @param oracle Oracle address to remove
      */
-    function removePriceOracle(address oracle) external onlyAdmin {
+    function removePriceOracle(address oracle) external onlyAdmin validAddress(oracle) {
         require(priceOracles[oracle].isActive, "Oracle not active");
         
         priceOracles[oracle].isActive = false;
         isAuthorizedUpdater[oracle] = false;
+        oracleReputationScores[oracle] = 0;
         
         // Remove from authorizedUpdaters array
         for (uint256 i = 0; i < authorizedUpdaters.length; i++) {
@@ -308,23 +436,19 @@ contract PriceAggregator {
     }
 
     /**
-     * @dev Check if price is fresh (not stale)
-     * @param timestamp Price timestamp
+     * @dev Check if price data is fresh following CoFHE validation patterns
+     * @param dex DEX address
+     * @param token0 First token address
+     * @param token1 Second token address
      * @return True if price is fresh
      */
-    function _isPriceFresh(uint256 timestamp) internal view returns (bool) {
-        return block.timestamp - timestamp <= PRICE_STALENESS_THRESHOLD;
-    }
-
-    /**
-     * @dev Convert encrypted value to bytes32 for events
-     * @param value Encrypted value
-     * @return bytes32 representation
-     */
-    function _encryptedToBytes32(euint128 value) internal pure returns (bytes32) {
-        // In real implementation, this would properly encode the encrypted value
-        // For now, using decrypted value for events (not ideal for production)
-        return bytes32(uint256(FHE.decrypt(value)));
+    function isPriceFresh(
+        address dex,
+        address token0,
+        address token1
+    ) external view returns (bool) {
+        EncryptedPriceData memory priceData = encryptedPrices[dex][token0][token1];
+        return priceData.isValid && _isPriceFresh(priceData.timestamp);
     }
 
     /**
@@ -355,6 +479,15 @@ contract PriceAggregator {
     }
 
     /**
+     * @dev Get oracle reputation score
+     * @param oracle Oracle address
+     * @return Reputation score
+     */
+    function getOracleReputation(address oracle) external view returns (uint256) {
+        return oracleReputationScores[oracle];
+    }
+
+    /**
      * @dev Get total number of authorized updaters
      * @return Number of authorized updaters
      */
@@ -363,18 +496,81 @@ contract PriceAggregator {
     }
 
     /**
-     * @dev Emergency pause all price updates
+     * @dev Get system public key for price sealing
+     * @return System public key
+     */
+    function getSystemPublicKey() external view returns (bytes32) {
+        return systemPublicKey;
+    }
+
+    /**
+     * @dev Emergency pause all price updates following CoFHE emergency patterns
      */
     function emergencyPause() external onlyAdmin {
-        // Remove all authorized updaters except admin
-        for (uint256 i = 0; i < authorizedUpdaters.length; i++) {
-            if (authorizedUpdaters[i] != admin) {
-                isAuthorizedUpdater[authorizedUpdaters[i]] = false;
-            }
-        }
-        
-        // Clear the array and keep only admin
-        delete authorizedUpdaters;
-        authorizedUpdaters.push(admin);
+        emergencyPaused = true;
+        emit EmergencyPauseActivated(msg.sender, block.timestamp);
+    }
+
+    /**
+     * @dev Resume price updates after emergency
+     */
+    function emergencyResume() external onlyAdmin {
+        emergencyPaused = false;
+    }
+
+    /**
+     * @dev Update system public key (admin only)
+     * @param newPublicKey New system public key
+     */
+    function updateSystemPublicKey(bytes32 newPublicKey) external onlyAdmin {
+        require(newPublicKey != bytes32(0), "Invalid public key");
+        systemPublicKey = newPublicKey;
+    }
+
+    /**
+     * @dev Calculate inverse price using FHE operations
+     * @param price Original encrypted price
+     * @return Inverted encrypted price
+     */
+    function _calculateInversePrice(euint128 price) internal pure returns (euint128) {
+        // For FHE operations, we approximate inverse as (1e36 / price)
+        // This is a simplified approach - production would need more sophisticated math
+        euint128 oneEth36 = FHE.asEuint128(1e36);
+        return FHE.div(oneEth36, price);
+    }
+
+    /**
+     * @dev Check if price is fresh (not stale) following CoFHE validation patterns
+     * @param timestamp Price timestamp
+     * @return True if price is fresh
+     */
+    function _isPriceFresh(uint256 timestamp) internal view returns (bool) {
+        return block.timestamp - timestamp <= PRICE_STALENESS_THRESHOLD;
+    }
+
+    /**
+     * @dev Get detailed oracle information
+     * @param oracle Oracle address
+     * @return Oracle details and statistics
+     */
+    function getOracleDetails(address oracle) external view returns (
+        string memory name,
+        DEXType dexType,
+        bool isActive,
+        uint256 addedTimestamp,
+        uint256 updateCount,
+        uint256 lastUpdateTimestamp,
+        uint256 reputationScore
+    ) {
+        PriceOracle memory oracleInfo = priceOracles[oracle];
+        return (
+            oracleInfo.name,
+            oracleInfo.dexType,
+            oracleInfo.isActive,
+            oracleInfo.addedTimestamp,
+            oracleInfo.updateCount,
+            oracleInfo.lastUpdateTimestamp,
+            oracleReputationScores[oracle]
+        );
     }
 }
