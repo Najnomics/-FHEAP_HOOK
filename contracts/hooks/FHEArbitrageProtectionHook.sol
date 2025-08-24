@@ -355,7 +355,7 @@ contract FHEArbitrageProtectionHook is BaseHook, IArbitrageProtection {
         address lp,
         bytes32 publicKey
     ) external view override returns (bytes memory) {
-        require(permissions.hasAccess(lp, "lp_rewards") || msg.sender == lp, "Not authorized");
+        require(permissions.hasAccess(lp, keccak256("lp_rewards")) || msg.sender == lp, "Not authorized");
         return abi.encode(encryptedLPRewards[poolId][lp]);
     }
 
