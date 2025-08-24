@@ -284,7 +284,7 @@ contract FHEArbitrageProtectionHook is BaseHook, IArbitrageProtection {
         // Calculate LP share using encrypted percentage calculation
         euint128 lpRewardTotal = ArbitrageCalculations.calculateLPRewards(
             recentMEVCaptured,
-            LP_SHARE_PERCENTAGE
+            FHE.asEuint64(LP_SHARE_PERCENTAGE)
         );
         
         // Update total LP rewards using FHE addition
