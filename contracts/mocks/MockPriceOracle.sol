@@ -230,7 +230,7 @@ contract MockPriceOracle {
         
         // Set prices for each DEX
         for (uint256 i = 0; i < registeredDEXs.length; i++) {
-            setMockPrice(registeredDEXs[i], token0, token1, prices[i]);
+            this.setMockPrice(registeredDEXs[i], token0, token1, prices[i]);
             
             if (prices[i] < minPrice) minPrice = prices[i];
             if (prices[i] > maxPrice) maxPrice = prices[i];
