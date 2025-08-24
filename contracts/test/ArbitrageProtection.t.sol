@@ -209,8 +209,9 @@ contract ArbitrageProtectionTest is Test {
         uint256 uniPrice = ETH_PRICE_BASE;
         uint256 sushiPrice = ETH_PRICE_BASE + SMALL_SPREAD; // 0.1% spread
         
-        inEuint128 memory encUniPrice = inEuint128.wrap(bytes(abi.encode(uniPrice)));
-        inEuint128 memory encSushiPrice = inEuint128.wrap(bytes(abi.encode(sushiPrice)));
+        // Create input for FHE operations (simplified for testing)
+        bytes memory encUniPrice = abi.encode(uniPrice);
+        bytes memory encSushiPrice = abi.encode(sushiPrice);
         
         priceAggregator.updateEncryptedPrice(UNISWAP_POOL, TOKEN0, TOKEN1, encUniPrice);
         priceAggregator.updateEncryptedPrice(SUSHISWAP_POOL, TOKEN0, TOKEN1, encSushiPrice);
