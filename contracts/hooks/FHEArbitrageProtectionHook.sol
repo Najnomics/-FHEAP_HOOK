@@ -410,7 +410,7 @@ contract FHEArbitrageProtectionHook is BaseHook, IArbitrageProtection {
      * @dev Create permit for encrypted data access following CoFHE patterns
      */
     function createPermit(address user, bytes32 publicKey) external {
-        require(permissions.hasAccess(msg.sender, "admin"), "Not authorized");
+        require(permissions.hasAccess(msg.sender, keccak256("admin")), "Not authorized");
         // Implementation would create proper permit for encrypted data access
     }
 
